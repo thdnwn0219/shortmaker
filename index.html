@@ -135,6 +135,24 @@
       opacity: .6;
       cursor: not-allowed;
     }
+    .download-btn {
+      background: linear-gradient(90deg, #10b981, #059669);
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      margin-top: 12px;
+      cursor: pointer;
+      transition: transform .13s cubic-bezier(.33,1,.68,1);
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    .download-btn:hover {
+      transform: translateY(-1px);
+    }
     .error {
       background: #fee2e2;
       color: #b91c1c;
@@ -224,16 +242,6 @@
       margin-top: 6px;
       background: #f3f4f6;
     }
-    .result a {
-      color: var(--primary);
-      font-weight: 600;
-      text-decoration: none;
-      font-size: 1.02rem;
-      transition: color .17s;
-    }
-    .result a:hover {
-      color: var(--accent);
-    }
     .credit {
       margin-top: 30px;
       text-align: center;
@@ -241,28 +249,6 @@
       font-size: .97rem;
       letter-spacing: .01em;
       user-select: none;
-    }
-    .service-toggle {
-      display: flex;
-      background: #f3f4f6;
-      border-radius: 8px;
-      padding: 4px;
-      margin-bottom: 15px;
-    }
-    .service-option {
-      flex: 1;
-      padding: 8px 12px;
-      text-align: center;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    .service-option.active {
-      background: white;
-      color: var(--primary);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     @media (max-width: 520px) {
       .container { padding: 24px 7vw 18px 7vw;}
@@ -274,11 +260,6 @@
   <div class="container">
     <div class="logo"><span class="logo-anim"></span>쇼츠AI</div>
     <div class="desc">몇 초 만에 바이럴 쇼츠 영상을 만드세요.<br>AI 스크립트 + 무료 스톡 이미지 + 즉시 렌더링.</div>
-    
-    <div class="service-toggle">
-      <div class="service-option active" data-service="shotstack">샷스택 (무료)</div>
-      <div class="service-option" data-service="creatomate">크리에이토메이트</div>
-    </div>
     
     <form id="videoForm" autocomplete="off">
       <div>
@@ -308,10 +289,8 @@
         <input type="password" id="groqKey" placeholder="gsk_..." required />
         <label for="pexelsKey">Pexels API 키</label>
         <input type="password" id="pexelsKey" placeholder="Pexels API 키" required />
-        <div id="videoApiKey">
-          <label for="shotstackKey">샷스택 API 키 (무료)</label>
-          <input type="password" id="shotstackKey" placeholder="샷스택 API 키" required />
-        </div>
+        <label for="creatomateKey">크리에이토메이트 API 키</label>
+        <input type="password" id="creatomateKey" placeholder="크리에이토메이트 API 키" required />
       </div>
       <button type="submit" class="btn" id="generateBtn">영상 생성하기</button>
       <div class="error" id="error"></div>
@@ -329,9 +308,9 @@
       <video id="videoPreview" controls>
         <source src="" type="video/mp4">
       </video>
-      <a id="downloadLink" href="#" download="shorts-ai.mp4">영상 다운로드</a>
+      <button id="downloadBtn" class="download-btn">📥 영상 다운로드</button>
     </div>
-    <div class="credit">Groq, Pexels, 샷스택/크리에이토메이트 API로 제작됨</div>
+    <div class="credit">Groq, Pexels, 크리에이토메이트 API로 제작됨</div>
   </div>
   <script>
     // 로고 애니메이션
@@ -341,29 +320,6 @@
       repeat: -1,
       duration: 1.2,
       ease: "power1.inOut"
-    });
-
-    // 서비스 토글 기능
-    document.querySelectorAll('.service-option').forEach(option => {
-      option.addEventListener('click', function() {
-        document.querySelectorAll('.service-option').forEach(opt => opt.classList.remove('active'));
-        this.classList.add('active');
-        
-        const service = this.dataset.service;
-        const apiKeyDiv = document.getElementById('videoApiKey');
-        
-        if (service === 'shotstack') {
-          apiKeyDiv.innerHTML = `
-            <label for="shotstackKey">샷스택 API 키 (무료)</label>
-            <input type="password" id="shotstackKey" placeholder="샷스택 API 키" required />
-          `;
-        } else {
-          apiKeyDiv.innerHTML = `
-            <label for="creatomateKey">크리에이토메이트 API 키</label>
-            <input type="password" id="creatomateKey" placeholder="크리에이토메이트 API 키" required />
-          `;
-        }
-      });
     });
 
     // 버튼 마이크로 인터랙션
@@ -384,12 +340,14 @@
         this.progressBar = document.getElementById('progressBar');
         this.statusText = document.getElementById('loadingStatus');
         this.video = document.getElementById('videoPreview');
-        this.downloadLink = document.getElementById('downloadLink');
+        this.downloadBtn = document.getElementById('downloadBtn');
+        this.currentVideoUrl = null;
         this.init();
       }
       
       init() {
         this.form.addEventListener('submit', this.handleSubmit.bind(this));
+        this.downloadBtn.addEventListener('click', this.downloadVideo.bind(this));
       }
       
       async handleSubmit(e) {
@@ -398,21 +356,14 @@
         this.showLoading();
         
         try {
-          const activeService = document.querySelector('.service-option.active').dataset.service;
           const data = {
             topic: document.getElementById('topic').value.trim(),
             videoType: document.getElementById('videoType').value,
             duration: document.getElementById('duration').value,
             groqKey: document.getElementById('groqKey').value.trim(),
             pexelsKey: document.getElementById('pexelsKey').value.trim(),
-            service: activeService
+            creatomateKey: document.getElementById('creatomateKey').value.trim()
           };
-          
-          if (activeService === 'shotstack') {
-            data.videoApiKey = document.getElementById('shotstackKey').value.trim();
-          } else {
-            data.videoApiKey = document.getElementById('creatomateKey').value.trim();
-          }
           
           this.updateProgress(10, "스크립트 생성 중...");
           const script = await this.generateScript(data);
@@ -421,14 +372,10 @@
           const images = await this.searchImages(data);
           
           this.updateProgress(55, "영상 템플릿 생성 중...");
-          let videoUrl;
+          const template = this.createCreatomateTemplate(script, images, data);
           
-          if (data.service === 'shotstack') {
-            videoUrl = await this.renderWithShotstack(script, images, data);
-          } else {
-            const template = this.createCreatomateTemplate(script, images, data);
-            videoUrl = await this.renderWithCreatomate(template, data.videoApiKey);
-          }
+          this.updateProgress(70, "영상 렌더링 중...");
+          const videoUrl = await this.renderWithCreatomate(template, data.creatomateKey);
           
           this.updateProgress(100, "완료!");
           this.showResult(videoUrl);
@@ -486,143 +433,9 @@
         
         const result = await res.json();
         if (!result.photos || result.photos.length === 0) {
-          // 기본 이미지 사용
           return ['https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg'];
         }
         return result.photos.map(photo => photo.src.large);
-      }
-      
-      async renderWithShotstack(script, images, data) {
-        this.updateProgress(70, "샷스택으로 렌더링 중...");
-        
-        const title = (script.match(/제목:\s*(.+)/) || [])[1] || data.topic;
-        const content = (script.match(/본문:\s*([\s\S]+?)마무리:/) || [])[1] || script.substring(0, 200);
-        
-        const timeline = {
-          soundtrack: {
-            src: "https://shotstack-assets.s3-ap-southeast-2.amazonaws.com/music/unminus/happy-upbeat-ukulele.mp3",
-            effect: "fadeOut"
-          },
-          background: "#000000",
-          tracks: [
-            {
-              clips: [
-                {
-                  asset: {
-                    type: "image",
-                    src: images[0] || "https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg"
-                  },
-                  start: 0,
-                  length: parseInt(data.duration),
-                  effect: "zoomIn",
-                  fit: "cover",
-                  position: "center"
-                }
-              ]
-            },
-            {
-              clips: [
-                {
-                  asset: {
-                    type: "title",
-                    text: title,
-                    style: "blockbuster",
-                    color: "#ffffff",
-                    size: "large"
-                  },
-                  start: 0,
-                  length: 3,
-                  position: "center",
-                  transition: {
-                    in: "fade",
-                    out: "fade"
-                  }
-                }
-              ]
-            },
-            {
-              clips: [
-                {
-                  asset: {
-                    type: "title",
-                    text: content.trim().substring(0, 150),
-                    style: "subtitle",
-                    color: "#ffffff",
-                    size: "medium"
-                  },
-                  start: 3,
-                  length: parseInt(data.duration) - 3,
-                  position: "center",
-                  transition: {
-                    in: "slideUp",
-                    out: "fade"
-                  }
-                }
-              ]
-            }
-          ]
-        };
-        
-        const renderData = {
-          timeline: timeline,
-          output: {
-            format: "mp4",
-            resolution: "mobile",
-            aspectRatio: "9:16",
-            size: {
-              width: 1080,
-              height: 1920
-            }
-          }
-        };
-        
-        const res = await fetch('https://api.shotstack.io/stage/render', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${data.videoApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(renderData)
-        });
-        
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(`샷스택 렌더링 실패: ${errorData.message || res.statusText}`);
-        }
-        
-        const result = await res.json();
-        return await this.waitForShotstackRender(result.response.id, data.videoApiKey);
-      }
-      
-      async waitForShotstackRender(renderId, apiKey) {
-        const maxAttempts = 60;
-        let attempts = 0;
-        
-        while (attempts < maxAttempts) {
-          await new Promise(r => setTimeout(r, 3000));
-          
-          const res = await fetch(`https://api.shotstack.io/stage/render/${renderId}`, {
-            headers: { 'Authorization': `Bearer ${apiKey}` }
-          });
-          
-          if (!res.ok) {
-            throw new Error('렌더링 상태 확인 실패');
-          }
-          
-          const render = await res.json();
-          const status = render.response.status;
-          
-          if (status === 'done') {
-            return render.response.url;
-          } else if (status === 'failed') {
-            throw new Error(`렌더링 실패: ${render.response.error || '알 수 없는 오류'}`);
-          }
-          
-          this.updateProgress(70 + attempts, `렌더링 중... (${attempts + 1}초)`);
-          attempts++;
-        }
-        
-        throw new Error('렌더링 시간 초과 - 다시 시도해주세요');
       }
       
       createCreatomateTemplate(script, images, data) {
@@ -660,8 +473,6 @@
       }
       
       async renderWithCreatomate(template, apiKey) {
-        this.updateProgress(70, "크리에이토메이트로 렌더링 중...");
-        
         const res = await fetch('https://api.creatomate.com/v1/renders', {
           method: 'POST',
           headers: {
@@ -710,6 +521,38 @@
         throw new Error('렌더링 시간 초과 - 다시 시도해주세요');
       }
       
+      async downloadVideo() {
+        if (!this.currentVideoUrl) {
+          alert('다운로드할 영상이 없습니다.');
+          return;
+        }
+        
+        try {
+          // 영상을 fetch로 가져와서 blob으로 변환
+          const response = await fetch(this.currentVideoUrl);
+          const blob = await response.blob();
+          
+          // blob URL 생성
+          const blobUrl = window.URL.createObjectURL(blob);
+          
+          // 다운로드 링크 생성
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `shorts-ai-${Date.now()}.mp4`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          // blob URL 정리
+          window.URL.revokeObjectURL(blobUrl);
+          
+        } catch (error) {
+          console.error('다운로드 오류:', error);
+          // 대안: 새 창에서 열기
+          window.open(this.currentVideoUrl, '_blank');
+        }
+      }
+      
       showLoading() {
         this.form.style.display = 'none';
         this.loading.style.display = 'flex';
@@ -722,7 +565,7 @@
         this.loading.style.display = 'none';
         this.result.style.display = 'flex';
         this.video.src = videoUrl;
-        this.downloadLink.href = videoUrl;
+        this.currentVideoUrl = videoUrl;
         gsap.fromTo(this.result, {y: 24, opacity: 0}, {y: 0, opacity: 1, duration: .7, ease: "power2.out"});
       }
       
@@ -753,3 +596,4 @@
   </script>
 </body>
 </html>
+

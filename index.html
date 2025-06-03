@@ -1,529 +1,501 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 쇼츠 영상 자동 생성기</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-        
-        .form-section {
-            padding: 40px;
-        }
-        
-        .input-group {
-            margin-bottom: 25px;
-        }
-        
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .input-group input, .input-group textarea, .input-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-        
-        .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .api-keys {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-        }
-        
-        .api-keys h3 {
-            color: #333;
-            margin-bottom: 15px;
-        }
-        
-        .generate-btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.3s;
-        }
-        
-        .generate-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .generate-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .result {
-            display: none;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-        
-        .video-preview {
-            width: 100%;
-            max-width: 300px;
-            margin: 0 auto;
-            display: block;
-            border-radius: 10px;
-        }
-        
-        .error {
-            color: #e74c3c;
-            background: #ffeaea;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            display: none;
-        }
-        
-        .progress {
-            width: 100%;
-            height: 20px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 15px 0;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            width: 0%;
-            transition: width 0.3s;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shorts AI Generator</title>
+  <!-- Google Fonts for Modern Look -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- GSAP Animation Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --accent: #fbbf24;
+      --bg: #f8fafc;
+      --card: #fff;
+      --radius: 18px;
+      --shadow: 0 4px 32px rgba(60,60,60,0.08);
+      --transition: .18s cubic-bezier(.55,.06,.68,.19);
+    }
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: 'Inter', sans-serif;
+      color: #222;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 36px 30px 30px 30px;
+      position: relative;
+      overflow: hidden;
+    }
+    .logo {
+      font-weight: 800;
+      font-size: 2.1rem;
+      letter-spacing: -1px;
+      color: var(--primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+    .logo-anim {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: inline-block;
+      margin-right: 8px;
+      box-shadow: 0 2px 12px rgba(99,102,241,0.13);
+      position: relative;
+      overflow: hidden;
+    }
+    .desc {
+      color: #6b7280;
+      font-size: 1.04rem;
+      margin-bottom: 30px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    label {
+      font-size: .98rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+    input, select {
+      font-family: inherit;
+      font-size: 1rem;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px 13px;
+      background: #f7fafc;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      outline: none;
+      margin-bottom: 2px;
+    }
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px #6366f133;
+    }
+    .api-group {
+      background: #f3f4f6;
+      border-radius: 12px;
+      padding: 16px 14px 10px 14px;
+      margin-top: 6px;
+      margin-bottom: 0;
+      animation: fadeIn .6s cubic-bezier(.33,1,.68,1);
+    }
+    .api-group label {
+      font-size: .92rem;
+      color: #555;
+      margin-bottom: 2px;
+    }
+    .btn {
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.08rem;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 0;
+      margin-top: 12px;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.09);
+      cursor: pointer;
+      transition: transform .13s cubic-bezier(.33,1,.68,1), box-shadow .17s;
+      will-change: transform;
+      letter-spacing: .02em;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn:active {
+      transform: scale(.97);
+      box-shadow: 0 1px 3px rgba(99,102,241,0.07);
+    }
+    .btn[disabled] {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+    .error {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-radius: 8px;
+      padding: 10px 13px;
+      font-size: .99rem;
+      margin-top: 8px;
+      animation: shake .38s cubic-bezier(.36,.07,.19,.97);
+      display: none;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translateX(-2px);}
+      20%, 80% { transform: translateX(4px);}
+      30%, 50%, 70% { transform: translateX(-8px);}
+      40%, 60% { transform: translateX(8px);}
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(24px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 0 15px 0;
+      justify-content: center;
+      animation: fadeIn .6s cubic-bezier(.33,1,.68,1);
+    }
+    .dot-loader {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      margin-top: 5px;
+    }
+    .dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      opacity: .8;
+      animation: bounce .8s infinite alternate;
+    }
+    .dot:nth-child(2) { animation-delay: .15s;}
+    .dot:nth-child(3) { animation-delay: .3s;}
+    @keyframes bounce {
+      0% { transform: translateY(0);}
+      100% { transform: translateY(-13px);}
+    }
+    .loading-status {
+      color: #6366f1;
+      font-size: 1.08rem;
+      font-weight: 600;
+      letter-spacing: .01em;
+      margin-bottom: 2px;
+      min-height: 24px;
+      transition: color .22s;
+    }
+    .progressbar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      margin-top: 4px;
+    }
+    .progressbar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 6px;
+      transition: width .5s cubic-bezier(.33,1,.68,1);
+    }
+    .result {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 22px 0 8px 0;
+      animation: fadeIn .7s cubic-bezier(.33,1,.68,1);
+    }
+    .result video {
+      width: 100%;
+      max-width: 260px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(99,102,241,0.09);
+      margin-bottom: 12px;
+      margin-top: 6px;
+      background: #f3f4f6;
+    }
+    .result a {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 1.02rem;
+      transition: color .17s;
+    }
+    .result a:hover {
+      color: var(--accent);
+    }
+    .credit {
+      margin-top: 30px;
+      text-align: center;
+      color: #bdbdbd;
+      font-size: .97rem;
+      letter-spacing: .01em;
+      user-select: none;
+    }
+    @media (max-width: 520px) {
+      .container { padding: 24px 7vw 18px 7vw;}
+      .logo { font-size: 1.5rem;}
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎬 AI 쇼츠 생성기</h1>
-            <p>AI가 자동으로 쇼츠 영상을 만들어드립니다</p>
-        </div>
-        
-        <div class="form-section">
-            <form id="videoForm">
-                <div class="input-group">
-                    <label for="topic">영상 주제</label>
-                    <input type="text" id="topic" placeholder="예: 최신 AI 기술 동향" required>
-                </div>
-                
-                <div class="input-group">
-                    <label for="videoType">영상 유형</label>
-                    <select id="videoType" required>
-                        <option value="">선택하세요</option>
-                        <option value="news">뉴스/정보</option>
-                        <option value="tutorial">튜토리얼</option>
-                        <option value="entertainment">엔터테인먼트</option>
-                        <option value="motivation">동기부여</option>
-                    </select>
-                </div>
-                
-                <div class="input-group">
-                    <label for="duration">영상 길이 (초)</label>
-                    <select id="duration">
-                        <option value="30">30초</option>
-                        <option value="45">45초</option>
-                        <option value="60" selected>60초</option>
-                    </select>
-                </div>
-                
-                <div class="api-keys">
-                    <h3>🔑 API 키 설정</h3>
-                    <div class="input-group">
-                        <label for="groqKey">Groq API Key</label>
-                        <input type="password" id="groqKey" placeholder="gsk_..." required>
-                    </div>
-                    <div class="input-group">
-                        <label for="pexelsKey">Pexels API Key</label>
-                        <input type="password" id="pexelsKey" placeholder="Pexels API Key" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="creatomateKey">Creatomate API Key</label>
-                        <input type="password" id="creatomateKey" placeholder="Creatomate API Key" required>
-                    </div>
-                </div>
-                
-                <button type="submit" class="generate-btn" id="generateBtn">
-                    🚀 영상 생성하기
-                </button>
-            </form>
-            
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>AI가 영상을 생성하고 있습니다...</p>
-                <div class="progress">
-                    <div class="progress-bar" id="progressBar"></div>
-                </div>
-                <p id="statusText">스크립트 생성 중...</p>
-            </div>
-            
-            <div class="error" id="error"></div>
-            
-            <div class="result" id="result">
-                <h3>✅ 영상 생성 완료!</h3>
-                <video class="video-preview" id="videoPreview" controls>
-                    <source src="" type="video/mp4">
-                </video>
-                <p id="downloadLink"></p>
-            </div>
-        </div>
+  <div class="container">
+    <div class="logo"><span class="logo-anim"></span>ShortsAI</div>
+    <div class="desc">Create viral Shorts videos in seconds.<br>AI script + free stock images + instant rendering.</div>
+    <form id="videoForm" autocomplete="off">
+      <div>
+        <label for="topic">Topic</label>
+        <input type="text" id="topic" placeholder="e.g. Latest AI trends" required />
+      </div>
+      <div>
+        <label for="videoType">Type</label>
+        <select id="videoType" required>
+          <option value="">Select</option>
+          <option value="news">News / Info</option>
+          <option value="tutorial">Tutorial</option>
+          <option value="entertainment">Entertainment</option>
+          <option value="motivation">Motivation</option>
+        </select>
+      </div>
+      <div>
+        <label for="duration">Duration</label>
+        <select id="duration">
+          <option value="30">30 sec</option>
+          <option value="45">45 sec</option>
+          <option value="60" selected>60 sec</option>
+        </select>
+      </div>
+      <div class="api-group">
+        <label for="groqKey">Groq API Key</label>
+        <input type="password" id="groqKey" placeholder="gsk_..." required />
+        <label for="pexelsKey">Pexels API Key</label>
+        <input type="password" id="pexelsKey" placeholder="Pexels API Key" required />
+        <label for="creatomateKey">Creatomate API Key</label>
+        <input type="password" id="creatomateKey" placeholder="Creatomate API Key" required />
+      </div>
+      <button type="submit" class="btn" id="generateBtn">Generate Video</button>
+      <div class="error" id="error"></div>
+    </form>
+    <div class="loading" id="loading" style="display:none;">
+      <div class="dot-loader">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div class="loading-status" id="loadingStatus">Preparing...</div>
+      <div class="progressbar"><div class="progressbar-inner" id="progressBar"></div></div>
     </div>
+    <div class="result" id="result">
+      <video id="videoPreview" controls>
+        <source src="" type="video/mp4">
+      </video>
+      <a id="downloadLink" href="#" download="shorts-ai.mp4">Download Video</a>
+    </div>
+    <div class="credit">Made with Groq, Pexels, Creatomate APIs</div>
+  </div>
+  <script>
+    // Logo animation
+    gsap.to('.logo-anim', {
+      scale: 1.2,
+      yoyo: true,
+      repeat: -1,
+      duration: 1.2,
+      ease: "power1.inOut"
+    });
 
-    <script>
-        class ShortsGenerator {
-            constructor() {
-                this.form = document.getElementById('videoForm');
-                this.loading = document.getElementById('loading');
-                this.result = document.getElementById('result');
-                this.error = document.getElementById('error');
-                this.progressBar = document.getElementById('progressBar');
-                this.statusText = document.getElementById('statusText');
-                
-                this.init();
-            }
-            
-            init() {
-                this.form.addEventListener('submit', this.handleSubmit.bind(this));
-            }
-            
-            async handleSubmit(e) {
-                e.preventDefault();
-                
-                const formData = {
-                    topic: document.getElementById('topic').value,
-                    videoType: document.getElementById('videoType').value,
-                    duration: document.getElementById('duration').value,
-                    groqKey: document.getElementById('groqKey').value,
-                    pexelsKey: document.getElementById('pexelsKey').value,
-                    creatomateKey: document.getElementById('creatomateKey').value
-                };
-                
-                try {
-                    this.showLoading();
-                    await this.generateVideo(formData);
-                } catch (error) {
-                    this.showError(error.message);
-                }
-            }
-            
-            async generateVideo(data) {
-                // 1단계: 스크립트 생성
-                this.updateProgress(20, '스크립트 생성 중...');
-                const script = await this.generateScript(data);
-                
-                // 2단계: 이미지 검색
-                this.updateProgress(40, '관련 이미지 검색 중...');
-                const images = await this.searchImages(data);
-                
-                // 3단계: 영상 템플릿 생성
-                this.updateProgress(60, '영상 템플릿 준비 중...');
-                const template = this.createVideoTemplate(script, images, data);
-                
-                // 4단계: 영상 렌더링
-                this.updateProgress(80, '영상 렌더링 중...');
-                const videoUrl = await this.renderVideo(template, data.creatomateKey);
-                
-                // 5단계: 완료
-                this.updateProgress(100, '완료!');
-                this.showResult(videoUrl);
-            }
-            
-            async generateScript(data) {
-                const prompt = `${data.videoType} 스타일의 ${data.duration}초 쇼츠 영상 스크립트를 작성해주세요. 
-                주제: ${data.topic}
-                
-                다음 형식으로 작성해주세요:
-                - 제목: [매력적인 제목]
-                - 오프닝: [첫 3초 대사]
-                - 본문: [핵심 내용 3-4개 포인트]
-                - 마무리: [강력한 마무리 멘트]
-                
-                각 섹션은 명확하게 구분하고, 시청자의 관심을 끌 수 있도록 작성해주세요.`;
-                
-                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${data.groqKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'llama-3.3-70b-versatile',
-                        messages: [
-                            {
-                                role: 'system',
-                                content: '당신은 바이럴 쇼츠 영상 스크립트 전문가입니다. 시청자의 관심을 끌고 끝까지 시청하게 만드는 스크립트를 작성합니다.'
-                            },
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 1000
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('스크립트 생성에 실패했습니다.');
-                }
-                
-                const result = await response.json();
-                return result.choices[0].message.content;
-            }
-            
-            async searchImages(data) {
-                const keywords = data.topic.split(' ').slice(0, 3).join(' ');
-                
-                const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(keywords)}&per_page=5&orientation=portrait`, {
-                    headers: {
-                        'Authorization': data.pexelsKey
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('이미지 검색에 실패했습니다.');
-                }
-                
-                const result = await response.json();
-                return result.photos.map(photo => photo.src.large);
-            }
-            
-            createVideoTemplate(script, images, data) {
-                // 스크립트를 섹션별로 파싱
-                const sections = this.parseScript(script);
-                
-                return {
-                    width: 1080,
-                    height: 1920,
-                    duration: parseInt(data.duration),
-                    elements: [
-                        // 배경 이미지
-                        {
-                            type: 'image',
-                            source: images[0] || 'https://via.placeholder.com/1080x1920/667eea/ffffff?text=AI+Shorts',
-                            x: 0,
-                            y: 0,
-                            width: 1080,
-                            height: 1920,
-                            opacity: 0.7
-                        },
-                        // 제목 텍스트
-                        {
-                            type: 'text',
-                            text: sections.title || data.topic,
-                            x: 540,
-                            y: 300,
-                            width: 900,
-                            height: 200,
-                            font_family: 'Arial Black',
-                            font_size: 60,
-                            font_weight: 'bold',
-                            color: '#ffffff',
-                            text_align: 'center',
-                            stroke_color: '#000000',
-                            stroke_width: 3
-                        },
-                        // 본문 텍스트
-                        {
-                            type: 'text',
-                            text: sections.content || script.substring(0, 200) + '...',
-                            x: 540,
-                            y: 960,
-                            width: 900,
-                            height: 800,
-                            font_family: 'Arial',
-                            font_size: 40,
-                            color: '#ffffff',
-                            text_align: 'center',
-                            stroke_color: '#000000',
-                            stroke_width: 2
-                        }
-                    ]
-                };
-            }
-            
-            parseScript(script) {
-                const lines = script.split('\n');
-                const sections = {
-                    title: '',
-                    content: ''
-                };
-                
-                for (const line of lines) {
-                    if (line.includes('제목:')) {
-                        sections.title = line.replace('제목:', '').trim();
-                    } else if (line.includes('본문:')) {
-                        sections.content = line.replace('본문:', '').trim();
-                    }
-                }
-                
-                return sections;
-            }
-            
-            async renderVideo(template, apiKey) {
-                const response = await fetch('https://api.creatomate.com/v1/renders', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        source: template
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('영상 렌더링에 실패했습니다.');
-                }
-                
-                const result = await response.json();
-                
-                // 렌더링 완료까지 대기
-                return await this.waitForRender(result[0].id, apiKey);
-            }
-            
-            async waitForRender(renderId, apiKey) {
-                const maxAttempts = 30;
-                let attempts = 0;
-                
-                while (attempts < maxAttempts) {
-                    const response = await fetch(`https://api.creatomate.com/v1/renders/${renderId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${apiKey}`
-                        }
-                    });
-                    
-                    const render = await response.json();
-                    
-                    if (render.status === 'succeeded') {
-                        return render.url;
-                    } else if (render.status === 'failed') {
-                        throw new Error('영상 렌더링이 실패했습니다.');
-                    }
-                    
-                    // 5초 대기
-                    await new Promise(resolve => setTimeout(resolve, 5000));
-                    attempts++;
-                }
-                
-                throw new Error('렌더링 시간이 초과되었습니다.');
-            }
-            
-            showLoading() {
-                this.form.style.display = 'none';
-                this.loading.style.display = 'block';
-                this.result.style.display = 'none';
-                this.error.style.display = 'none';
-            }
-            
-            showResult(videoUrl) {
-                this.loading.style.display = 'none';
-                this.result.style.display = 'block';
-                
-                const video = document.getElementById('videoPreview');
-                video.src = videoUrl;
-                
-                const downloadLink = document.getElementById('downloadLink');
-                downloadLink.innerHTML = `<a href="${videoUrl}" download="ai-shorts.mp4" style="color: #667eea; text-decoration: none; font-weight: bold;">📥 영상 다운로드</a>`;
-            }
-            
-            showError(message) {
-                this.loading.style.display = 'none';
-                this.error.style.display = 'block';
-                this.error.textContent = message;
-                
-                // 폼 다시 표시
-                this.form.style.display = 'block';
-            }
-            
-            updateProgress(percent, status) {
-                this.progressBar.style.width = percent + '%';
-                this.statusText.textContent = status;
-            }
+    // Micro-interaction for button
+    document.getElementById('generateBtn').addEventListener('pointerdown', e => {
+      gsap.to(e.target, { scale: 0.96, duration: 0.15, ease: "power1.inOut" });
+    });
+    document.getElementById('generateBtn').addEventListener('pointerup', e => {
+      gsap.to(e.target, { scale: 1, duration: 0.22, ease: "power1.inOut" });
+    });
+
+    // Main logic
+    class ShortsGenerator {
+      constructor() {
+        this.form = document.getElementById('videoForm');
+        this.loading = document.getElementById('loading');
+        this.result = document.getElementById('result');
+        this.error = document.getElementById('error');
+        this.progressBar = document.getElementById('progressBar');
+        this.statusText = document.getElementById('loadingStatus');
+        this.video = document.getElementById('videoPreview');
+        this.downloadLink = document.getElementById('downloadLink');
+        this.init();
+      }
+      init() {
+        this.form.addEventListener('submit', this.handleSubmit.bind(this));
+      }
+      async handleSubmit(e) {
+        e.preventDefault();
+        this.hideAll();
+        this.showLoading();
+        try {
+          const data = {
+            topic: document.getElementById('topic').value.trim(),
+            videoType: document.getElementById('videoType').value,
+            duration: document.getElementById('duration').value,
+            groqKey: document.getElementById('groqKey').value.trim(),
+            pexelsKey: document.getElementById('pexelsKey').value.trim(),
+            creatomateKey: document.getElementById('creatomateKey').value.trim()
+          };
+          this.updateProgress(10, "Generating script...");
+          const script = await this.generateScript(data);
+          this.updateProgress(35, "Finding images...");
+          const images = await this.searchImages(data);
+          this.updateProgress(55, "Building video template...");
+          const template = this.createVideoTemplate(script, images, data);
+          this.updateProgress(70, "Rendering video...");
+          const videoUrl = await this.renderVideo(template, data.creatomateKey);
+          this.updateProgress(100, "Done!");
+          this.showResult(videoUrl);
+        } catch (err) {
+          this.showError(err.message || "Unknown error");
         }
-        
-        // 앱 초기화
-        document.addEventListener('DOMContentLoaded', () => {
-            new ShortsGenerator();
+      }
+      async generateScript(data) {
+        const prompt = `${data.videoType} 스타일의 ${data.duration}초 쇼츠 영상 스크립트를 작성해주세요. 
+        주제: ${data.topic}
+        - 제목: [매력적인 제목]
+        - 오프닝: [첫 3초 대사]
+        - 본문: [핵심 내용 3-4개 포인트]
+        - 마무리: [강력한 마무리 멘트]
+        각 섹션은 명확하게 구분하고, 시청자의 관심을 끌 수 있도록 작성해주세요.`;
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${data.groqKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3-70b-8192',
+            messages: [
+              {role: 'system', content: '당신은 쇼츠 영상 스크립트 전문가입니다.'},
+              {role: 'user', content: prompt}
+            ],
+            temperature: 0.7,
+            max_tokens: 900
+          })
         });
-    </script>
+        if (!res.ok) throw new Error('Script generation failed');
+        const result = await res.json();
+        return result.choices[0].message.content;
+      }
+      async searchImages(data) {
+        const keywords = data.topic.split(' ').slice(0, 3).join(' ');
+        const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(keywords)}&per_page=3&orientation=portrait`, {
+          headers: { 'Authorization': data.pexelsKey }
+        });
+        if (!res.ok) throw new Error('Image search failed');
+        const result = await res.json();
+        return result.photos.map(photo => photo.src.large);
+      }
+      createVideoTemplate(script, images, data) {
+        // Parse script
+        const title = (script.match(/제목:\s*(.+)/) || [])[1] || data.topic;
+        const content = (script.match(/본문:\s*([\s\S]+?)마무리:/) || [])[1] || script;
+        return {
+          width: 1080,
+          height: 1920,
+          duration: parseInt(data.duration),
+          elements: [
+            {
+              type: 'image',
+              source: images[0] || 'https://via.placeholder.com/1080x1920/6366f1/fff?text=ShortsAI',
+              x: 0, y: 0, width: 1080, height: 1920, opacity: 0.72
+            },
+            {
+              type: 'text',
+              text: title,
+              x: 540, y: 260, width: 900, height: 180,
+              font_family: 'Arial Black', font_size: 62, font_weight: 'bold',
+              color: '#fff', text_align: 'center',
+              stroke_color: '#6366f1', stroke_width: 5
+            },
+            {
+              type: 'text',
+              text: content.trim().slice(0, 350) + (content.length > 350 ? '...' : ''),
+              x: 540, y: 960, width: 900, height: 900,
+              font_family: 'Inter', font_size: 39,
+              color: '#fff', text_align: 'center',
+              stroke_color: '#222', stroke_width: 2
+            }
+          ]
+        };
+      }
+      async renderVideo(template, apiKey) {
+        const res = await fetch('https://api.creatomate.com/v1/renders', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ source: template })
+        });
+        if (!res.ok) throw new Error('Video rendering failed');
+        const result = await res.json();
+        return await this.waitForRender(result[0].id, apiKey);
+      }
+      async waitForRender(renderId, apiKey) {
+        for (let i = 0; i < 30; i++) {
+          await new Promise(r => setTimeout(r, 3500));
+          const res = await fetch(`https://api.creatomate.com/v1/renders/${renderId}`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+          });
+          const render = await res.json();
+          if (render.status === 'succeeded') return render.url;
+          if (render.status === 'failed') throw new Error('Rendering failed');
+          this.updateProgress(70 + i, `Rendering... (${i+1}s)`);
+        }
+        throw new Error('Rendering timeout');
+      }
+      showLoading() {
+        this.form.style.display = 'none';
+        this.loading.style.display = 'flex';
+        this.result.style.display = 'none';
+        this.error.style.display = 'none';
+        this.updateProgress(0, "Preparing...");
+      }
+      showResult(videoUrl) {
+        this.loading.style.display = 'none';
+        this.result.style.display = 'flex';
+        this.video.src = videoUrl;
+        this.downloadLink.href = videoUrl;
+        gsap.fromTo(this.result, {y: 24, opacity: 0}, {y: 0, opacity: 1, duration: .7, ease: "power2.out"});
+      }
+      showError(msg) {
+        this.loading.style.display = 'none';
+        this.result.style.display = 'none';
+        this.error.style.display = 'block';
+        this.error.textContent = msg;
+        gsap.fromTo(this.error, {x: -12, opacity: 0}, {x: 0, opacity: 1, duration: .38, ease: "power2.out"});
+        this.form.style.display = 'block';
+      }
+      hideAll() {
+        this.error.style.display = 'none';
+        this.result.style.display = 'none';
+        this.loading.style.display = 'none';
+      }
+      updateProgress(percent, status) {
+        this.progressBar.style.width = Math.min(percent, 100) + '%';
+        this.statusText.textContent = status;
+      }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      new ShortsGenerator();
+    });
+  </script>
 </body>
 </html>
+

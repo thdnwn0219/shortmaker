@@ -242,6 +242,21 @@
       margin-top: 6px;
       background: #f3f4f6;
     }
+    .video-info {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      color: #666;
+      text-align: center;
+    }
+    .download-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
     .credit {
       margin-top: 30px;
       text-align: center;
@@ -305,10 +320,17 @@
       <div class="progressbar"><div class="progressbar-inner" id="progressBar"></div></div>
     </div>
     <div class="result" id="result">
-      <video id="videoPreview" controls>
+      <video id="videoPreview" controls preload="metadata" crossorigin="anonymous">
         <source src="" type="video/mp4">
+        영상을 재생할 수 없습니다. 브라우저가 이 형식을 지원하지 않습니다.
       </video>
-      <button id="downloadBtn" class="download-btn">📥 영상 다운로드</button>
+      <div class="video-info" id="videoInfo">
+        영상 URL: <span id="videoUrl">-</span>
+      </div>
+      <div class="download-options">
+        <button id="downloadBtn" class="download-btn">📥 직접 다운로드</button>
+        <button id="openBtn" class="download-btn">🔗 새 창에서 열기</button>
+      </div>
     </div>
     <div class="credit">Groq, Pexels, 크리에이토메이트 API로 제작됨</div>
   </div>
@@ -341,6 +363,9 @@
         this.statusText = document.getElementById('loadingStatus');
         this.video = document.getElementById('videoPreview');
         this.downloadBtn = document.getElementById('downloadBtn');
+        this.openBtn = document.getElementById('openBtn');
+        this.videoInfo = document.getElementById('videoInfo');
+        this.videoUrl = document.getElementById('videoUrl');
         this.currentVideoUrl = null;
         this.init();
       }
@@ -348,6 +373,7 @@
       init() {
         this.form.addEventListener('submit', this.handleSubmit.bind(this));
         this.downloadBtn.addEventListener('click', this.downloadVideo.bind(this));
+        this.openBtn.addEventListener('click', this.openVideo.bind(this));
       }
       
       async handleSubmit(e) {
@@ -446,18 +472,22 @@
           width: 1080,
           height: 1920,
           duration: parseInt(data.duration),
+          format: "mp4",
+          quality: "high",
           elements: [
             {
               type: 'image',
               source: images[0] || 'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg',
-              x: 0, y: 0, width: 1080, height: 1920, opacity: 0.72
+              x: 0, y: 0, width: 1080, height: 1920, 
+              opacity: 0.72,
+              fit: "cover"
             },
             {
               type: 'text',
               text: title,
               x: 540, y: 260, width: 900, height: 180,
               font_family: 'Arial Black', font_size: 62, font_weight: 'bold',
-              color: '#fff', text_align: 'center',
+              color: '#ffffff', text_align: 'center',
               stroke_color: '#6366f1', stroke_width: 5
             },
             {
@@ -465,8 +495,8 @@
               text: content.trim().slice(0, 350) + (content.length > 350 ? '...' : ''),
               x: 540, y: 960, width: 900, height: 900,
               font_family: 'Inter', font_size: 39,
-              color: '#fff', text_align: 'center',
-              stroke_color: '#222', stroke_width: 2
+              color: '#ffffff', text_align: 'center',
+              stroke_color: '#222222', stroke_width: 2
             }
           ]
         };
@@ -479,7 +509,10 @@
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ source: template })
+          body: JSON.stringify({ 
+            source: template,
+            output_format: "mp4"
+          })
         });
         
         if (!res.ok) {
@@ -528,27 +561,47 @@
         }
         
         try {
-          // 영상을 fetch로 가져와서 blob으로 변환
-          const response = await fetch(this.currentVideoUrl);
-          const blob = await response.blob();
+          // 프록시를 통한 다운로드 시도
+          const proxyUrl = `https://cors-anywhere.herokuapp.com/${this.currentVideoUrl}`;
           
-          // blob URL 생성
-          const blobUrl = window.URL.createObjectURL(blob);
+          const response = await fetch(proxyUrl, {
+            method: 'GET',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          }).catch(() => {
+            // 프록시 실패 시 직접 시도
+            return fetch(this.currentVideoUrl);
+          });
           
-          // 다운로드 링크 생성
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = `shorts-ai-${Date.now()}.mp4`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          
-          // blob URL 정리
-          window.URL.revokeObjectURL(blobUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `shorts-ai-${Date.now()}.mp4`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            window.URL.revokeObjectURL(blobUrl);
+            alert('다운로드가 시작되었습니다.');
+          } else {
+            throw new Error('다운로드 실패');
+          }
           
         } catch (error) {
           console.error('다운로드 오류:', error);
           // 대안: 새 창에서 열기
+          this.openVideo();
+          alert('직접 다운로드에 실패했습니다. 새 창에서 영상을 열었습니다. 우클릭 후 "다른 이름으로 저장"을 선택하세요.');
+        }
+      }
+      
+      openVideo() {
+        if (this.currentVideoUrl) {
           window.open(this.currentVideoUrl, '_blank');
         }
       }
@@ -564,8 +617,30 @@
       showResult(videoUrl) {
         this.loading.style.display = 'none';
         this.result.style.display = 'flex';
-        this.video.src = videoUrl;
         this.currentVideoUrl = videoUrl;
+        
+        // 영상 URL 표시
+        this.videoUrl.textContent = videoUrl;
+        
+        // 비디오 요소 설정
+        this.video.src = videoUrl;
+        this.video.load(); // 강제 로드
+        
+        // 비디오 로드 이벤트 처리
+        this.video.addEventListener('loadeddata', () => {
+          console.log('비디오 로드 완료');
+        });
+        
+        this.video.addEventListener('error', (e) => {
+          console.error('비디오 로드 오류:', e);
+          this.video.style.display = 'none';
+          this.videoInfo.innerHTML = `
+            <strong>미리보기 불가</strong><br>
+            영상 URL: <a href="${videoUrl}" target="_blank">${videoUrl}</a><br>
+            <small>브라우저에서 미리보기할 수 없지만 다운로드는 가능합니다.</small>
+          `;
+        });
+        
         gsap.fromTo(this.result, {y: 24, opacity: 0}, {y: 0, opacity: 1, duration: .7, ease: "power2.out"});
       }
       
